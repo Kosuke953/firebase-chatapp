@@ -1,0 +1,117 @@
+
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase_version9_RealtimeDB(G'sACADEMY初学者用サンプル)</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- コンテンツ表示画面 -->
+    <div class="container">
+        <div id="output" class="output-container"></div>
+        <div class="form-container">
+            <div class="name-input">なまえ：<input type="text" id="uname" placeholder="your name..."></div>
+            <div>
+                <textarea id="text" cols="30" rows="3" placeholder="your message..."></textarea>
+            </div>
+            <input type="submit" id="send" value="送信">
+        </div>
+    </div>
+
+<script type="module">
+    // Import the functions you need from the SDKs you need
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.1.0/firebase-app.js";
+    import { getDatabase, ref, push, set, onChildAdded, remove, onChildRemoved } 
+    from "https://www.gstatic.com/firebasejs/9.1.0/firebase-database.js";
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+        apiKey: "AIzaSyC3Q4dLn5pYFctFI6jP9BFfafy42Fw_nxo",
+        authDomain: "chat-d728c.firebaseapp.com",
+        databaseURL: "https://chat-d728c-default-rtdb.firebaseio.com",
+        projectId: "chat-d728c",
+        storageBucket: "chat-d728c.appspot.com",
+        messagingSenderId: "179210831689",
+        appId: "1:179210831689:web:85cbf464a85116c66b7c98"
+    };
+    // Initialize Firebase
+    const app = initializeApp(firebaseConfig);
+    const db  = getDatabase(app); //RealtimeDBに接続
+    const dbRef = ref(db,"chat"); //RealtimeDB内の"chat"を使う
+
+    //文字が入っていないとボタンを押せない仕様にする
+    // $('#text').on('input', function(){
+    //     let input_text = $(this).val();
+    //     if(input_text){
+    //         $('#send').prop('disabled', false); //disavledを無効にする＝ボタンが押せる
+    //     }else{
+    //         $('#send').prop('disabled', true); //disavledを有効にする＝ボタンが押せない
+    //     }
+    // });
+
+
+    // データ登録_クリック
+    $('#send').on("click", function(){
+        const msg = {
+            uname: $('#uname').val(),
+            text: $('#text').val()
+        }
+        const newPostRef = push(dbRef);
+        set(newPostRef, msg);
+        $('#uname').val('');
+        $('#text').val('');
+        
+    });
+
+    //データ登録(Enter)
+    $("#text").on("keydown",function(e){
+        console.log(e);        //e変数の中身を確認！！
+        if(e.keyCode === 13){   //EnterKey=13
+            const msg = {
+                uname: $("#uname").val(),
+                text: $("#text").val()
+            }
+            $('#uname').val('');
+            $('#text').val('');
+            const newPostRef = push(dbRef); //ユニークKEYを生成
+            set(newPostRef, msg);           //"chat"にユニークKEYをつけてオブジェクトデータを登録
+
+        }
+    });
+
+    //最初にデータ取得＆onSnapshotでリアルタイムにデータを取得
+    onChildAdded(dbRef, function(data){   
+        const msg  = data.val();    //オブジェクトデータを取得し、変数msgに代入
+        const key  = data.key;      //データのユニークキー（削除や更新に使用可能）
+        //表示用テキスト・HTMLを作成
+        const n = 
+        `<div class="name-container">
+            <img src="image/default_icon.png" alt="アイコン">
+            <p class='name-space'>${msg.uname}</p>
+        </div>`
+        const t = `<p>　${msg.text}</p>`
+        let h = `${n}${t}`;
+        let message = `<div class="message">${h}</div>`;
+        let deleteBtn = '<button class="btn">Delete</button>';
+        let m = message+deleteBtn;
+            $("#output").append(`<div id="m-container" class="message-container">${m}</div>`); //#outputの最後に追加
+            $(".btn").attr({id:data.key,class:'delete'}); //ボタンにfirebaseのユニークIDとdeleteクラスを付与
+    });
+
+    // 削除ボタンをクリックした時の動作
+    $(document).on('click', '.delete', function(){
+        let value = $(this).attr('id');
+        console.log(value);
+        remove(ref(db, `chat/${value}`));
+        $(this).parent().remove();
+    });
+
+</script>
+</body>
+</html>
